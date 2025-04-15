@@ -1,0 +1,8 @@
+# doc builds
+/egu_tutorial/docs/build
+
+# macos stuff
+.DS_Store
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
