@@ -7,7 +7,7 @@ Example values are not realistic
 
 
 class get_evapotranspiration:
-    """ Compute potential evapotranspiration."""
+    """Compute potential evapotranspiration."""
 
     def __init__(self):
         self.pt_coeff_arid = 1.76
