@@ -7,7 +7,7 @@ Example values are not realistic
 
 
 class get_evapotranspiration:
-    """ Compute potential evapotranspiration."""
+    """Compute potential evapotranspiration."""
 
     def __init__(self):
         self.pt_coeff_arid = 1.76
@@ -40,7 +40,3 @@ class get_evapotranspiration:
         else:
             pet = self.pt_coeff_arid * (slope_svp * net_rad / (slope_svp + psy_cons))
         return pet
-
-evap_init = get_evapotranspiration()
-PET = evap_init.calculate_pet(2, 3, 4, "arid")
-print(f"Result: {PET}")
