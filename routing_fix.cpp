@@ -289,20 +289,6 @@ void routingClass::init(const short nBasins, ConfigFile configFile, WghmStateFil
     // GLWDunit pattern with index to outflow grid cell Image22-Number (n = Image22nr - 1)
     G_outflow_cell_assignment.read(options.input_dir + "/G_OUTFLOW_CELL_ASSIGNMENT.UNF4");
 
-    // reading Inflow cells to determine whether a cell is a headwater cell (without any upstream cell)
-    // 1 == headwater cells
-    G_inflow_cells.read(options.routing_dir + "/G_INFLC.9.UNF4");
-    for (int n = 0; n < ng; n++) {
-        int S=0;
-        for (int i = 0; i < 9; i++) {
-            S+= G_inflow_cells(n, i);
-        }
-        if (S==0){
-            G_isHeadwaterCell[n]=1;
-        }else{
-            G_isHeadwaterCell[n]=0;
-        }
-    }
 
     // read cell number of downstream cell;
     // added for new use_allocation algorithm, M.Hunger 2/2006,
@@ -768,8 +754,7 @@ void routingClass::initFractionStatus() {
         // initialize G_fswb and related fractions
         G_fLocLake[n] = G_loc_lake[n] / 100.;
         G_fLocWet[n] = G_loc_wetland[n] / 100.;
-        G_fRegLake[n] =G_reg_lake[n] / 100.; // adapt Only for swb in headwater cells (without any upstream cell)
-        G_fGloLake[n] = G_glo_lake[n] / 100.; // adapt Only for swb in headwater cells (without any upstream cell)
+        G_fGloLake[n] = G_glo_lake[n] / 100.; // do not adapt at all, just for output purposes
         G_fGloWet[n] = G_glo_wetland[n] / 100.;
         G_fswbInit[n] = G_fLocLake[n] + G_fLocWet[n] +
                         G_fGloWet[n]; // for output purposes and for specifying catchment area (for fractional routing), outflow cells are not considered anymore
@@ -1095,18 +1080,6 @@ void routingClass::annualInit(const short year, int start_month, AdditionalOutpu
             // within domain of years, e.g. current, min, max, reference year
             // ATTENTION: Fractions should be consistent to condition resYearCurrentToUse >= G_res_start_year[n]
             G_glo_res.read(std::string(options.input_dir) + "/G_RES/G_RES_" + std::to_string(resYearCurrentToUse) + ".UNF0");
-
-            // Only for consideration of the fraction of the global reservoir in headwater cells (without any upstream cell)
-            for (n = 0; n < ng; n++){
-                // If there is a reservoir and its fraction is not considered yet.
-                if (G_glo_res[n] != 0 && G_isFraGloResCon[n] != 1){
-                // The real location of the reservoir can be different from outflow cell.
-                // So, the fraction of the global reservoir is added to the outflow cell using G_outflow_cell_assignment.
-                // The G_fRes is only used in headwater cells.
-                    G_fRes[G_outflow_cell_assignment[n] -1] += G_glo_res[n]/ 100.;
-                    G_isFraGloResCon[n] = 1;
-                    }
-            }
 
             // Transfer the values at start of the first model year to array of previous
             if (0 == statusStarted_updateGloResPrevYear) {
@@ -1925,17 +1898,6 @@ void routingClass::routing(const short year, short day, short month, const short
                 if (options.fractionalRoutingOpt && G_LDD[n] >= 0){
                     G_fswb_catchment[n] = G_fswbInit[n] *
                                           20.;    // G_fswb_catchment[n] = G_fswb[n] * 5.; // add a catchment area to surface water bodies (specified as x times the size of swb)...
-
-                    // If it is a headwater cell, the fractions of the global lake, regulated lake, and reservoir are considered in calculation of G_fswb_catchment
-                    if (G_isHeadwaterCell[n] ==  1){
-                        G_fswb_catchment[n]+=(G_fGloLake[n]+G_fRegLake[n]+G_fRes[n])*20.;
-
-                       // It is assumed that the G_fswb_catchment cannot be less than 0.6 in headwater cells with a reservoir.
-                       // It means that at least 60% of surface runoff should go through the reservoir in headwater cells.
-                        if (G_fswb_catchment[n] < 0.6 && resYearCurrentToUse >= G_res_start_year[n] ){
-                            G_fswb_catchment[n]= 0.6;
-                        }
-                    }
 
                     if (G_fswb_catchment[n] > 1.) // ... and prevent that G_fswb is greater then 1
                         G_fswb_catchment[n] = 1.;
